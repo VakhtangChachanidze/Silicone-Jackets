@@ -1,0 +1,9 @@
+rm_name,code,meaning
+RNE,000,Round to Nearest ties to Even
+RTZ,001,Round towards Zero
+RDN,010,Round Down
+RUP,011,Round Up
+RMM,100,Round to Nearest ties to Max Magnitude
+RESERVED_101,101,Reserved
+RESERVED_110,110,Reserved
+DYN,111,Dynamic rounding mode (frm)
