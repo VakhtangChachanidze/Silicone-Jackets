@@ -154,6 +154,8 @@ module fp_decoder_tb;
       apply_instr_and_check("FLW", instr_FLW, exp_FLW);
     end
 
+    repeat (5) @(posedge clk);
+
     // FSW instruction
 
     begin
@@ -179,6 +181,8 @@ module fp_decoder_tb;
       apply_instr_and_check("FSW", instr_FSW, exp_FSW);
     end
 
+    repeat (5) @(posedge clk);
+
     // FMADD.S instruction
 
     begin
@@ -203,6 +207,8 @@ module fp_decoder_tb;
       logic [31:0] instr_FMADD = {exp_FMADD.rs3, exo_FMADD.fmt, exp_FMADD.rs2, exp_FMADD.rs1, exp_FMADD.rm, exp_FMADD.rd, exp_FMADD.fp_op};
       apply_instr_and_check("FMADD", instr_FMADD, exp_FMADD);
     end
+
+    repeat (5) @(posedge clk);
 
     // FMSUB.S instruction
 
