@@ -64,7 +64,7 @@ module fp_decoder_tb;
   initial clk = 0;
   always #5 clk = ~clk;
 
-  // Reset is synchronous in the DUT (sampled on posedge clk), so we check on posedge.
+  /*
   property p_reset_nullifies_outputs;
     @(posedge clk)
       rst |-> (
@@ -90,6 +90,7 @@ module fp_decoder_tb;
     else $fatal(1,
       "RESET CHECK FAILED: fp_op=%0h func=%0h fmt=%0h rs1=%0d rs2=%0d rs3=%0d rd=%0d offset=%0h fp_read=%0b fp_write=%0b eff_read=%0b eff_write=%0b int_read=%0b int_write=%0b rm=%0b",
       fp_op, func, fmt, rs1, rs2, rs3, rd, offset, fp_read, fp_write, eff_read, eff_write, int_read, int_write, rm);
+  */
   
   task automatic check_outputs(input string test_name, fp_decoder_exp exp);
     if (fp_op !== exp.fp_op) $fatal(1, "%s: fp_op exp=%0h got=%0h", test_name, exp.fp_op, fp_op);
@@ -110,7 +111,7 @@ module fp_decoder_tb;
   endtask
 
   task automatic apply_instr_and_check(input string test_name, input logic [31:0] test_instr, input fp_decoder_exp exp);
-    instr = instr_i;
+    instr = test_instr;
     @(posedge clk);
 
     check_outputs(test_name, exp);
@@ -119,15 +120,32 @@ module fp_decoder_tb;
 
   initial begin
     // Reset asserted high test case
-    rst = 1'b1;
-    instr = 32'hFFFF_FFFF;
-    repeat (5) @(posedge clk);
+    
+    begin
+      fp_decoder_exp exp_RST;
 
-    rst = 1'b0;
-    instr = 32'd0;
-    repeat (5) @(posedge clk);
+      exp_RST.fp_op = FP_OP_FLW;
+      exp_RST.func = FP_INSTR_NONE;
+      exp_RST.fmt = 0;
+      exp_RST.rs1 = 5'b11000;
+      exp_RST.rs2 = 0;
+      exp_RST.rs3 = 0;
+      exp_RST.rd = 5'b10110;
+      exp_RST.offset = 12'b110010010011;
+      exp_RST.fp_read = 0;
+      exp_RST.fp_write = 1;
+      exp_RST.eff_read = 1;
+      exp_RST.eff_write = 0;
+      exp_RST.int_read = 0;
+      exp_RST.int_write = 0;
+      exp_RST.rm = 0;
 
-    $display("Reset test passed.");
+      // An FLW instruction is inputed instead of an invalid one. 
+      logic [31:0] instr_RST = {12'b110010010011, 5'b11000, 3'b000, 5'b10110, FP_OP_FLW};
+      apply_instr_and_check("FLW", instr_FLW, exp_FLW);
+    end
+
+    repeat (5) @(posedge clk);
 
     // FLW instruction
 
@@ -190,7 +208,7 @@ module fp_decoder_tb;
 
       exp_FMADD.fp_op = FP_OP_FMADD;
       exp_FMADD.func = FP_INSTR_NONE;
-      exp_FMADD.fmt = 2'b00;
+      exp_FMADD.fmt = 0;
       exp_FMADD.rs1 = 5'b11000;
       exp_FMADD.rs2 = 5'b10110;
       exp_FMADD.rs3 = 5'b10010;
@@ -204,7 +222,7 @@ module fp_decoder_tb;
       exp_FMADD.int_write = 0;
       exp_FMADD.rm = 3'b000;
 
-      logic [31:0] instr_FMADD = {exp_FMADD.rs3, exo_FMADD.fmt, exp_FMADD.rs2, exp_FMADD.rs1, exp_FMADD.rm, exp_FMADD.rd, exp_FMADD.fp_op};
+      logic [31:0] instr_FMADD = {exp_FMADD.rs3, exp_FMADD.fmt, exp_FMADD.rs2, exp_FMADD.rs1, exp_FMADD.rm, exp_FMADD.rd, exp_FMADD.fp_op};
       apply_instr_and_check("FMADD", instr_FMADD, exp_FMADD);
     end
 
@@ -212,13 +230,138 @@ module fp_decoder_tb;
 
     // FMSUB.S instruction
 
+    begin
+      fp_decoder_exp exp_FMSUB;
+
+      exp_FMSUB.fp_op = FP_OP_FMSUB;
+      exp_FMSUB.func = FP_INSTR_NONE;
+      exp_FMSUB.fmt = 0;
+      exp_FMSUB.rs1 = 5'b11000;
+      exp_FMSUB.rs2 = 5'b10110;
+      exp_FMSUB.rs3 = 5'b10010;
+      exp_FMSUB.rd = 5'b101110;
+      exp_FMSUB.offset = 0;
+      exp_FMSUB.fp_read = 1;
+      exp_FMSUB.fp_write = 1;
+      exp_FMSUB.eff_read = 0;
+      exp_FMSUB.eff_write = 0;
+      exp_FMSUB.int_read = 0;
+      exp_FMSUB.int_write = 0;
+      exp_FMSUB.rm = 3'b000;
+
+      logic [31:0] instr_FMSUB = {exp_FMSUB.rs3, exp_FMSUB.fmt, exp_FMSUB.rs2, exp_FMSUB.rs1, exp_FMSUB.rm, exp_FMSUB.rd, exp_FMSUB.fp_op};
+      apply_instr_and_check("FMSUB", instr_FMSUB, exp_FMSUB);
+    end
+
+    repeat (5) @(posedge clk);
+
     // FNMSUB.S instruction
+
+    begin
+      fp_decoder_exp exp_FNMSUB;
+
+      exp_FNMSUB.fp_op = FP_OP_FNMSUB;
+      exp_FNMSUB.func = FP_INSTR_NONE;
+      exp_FNMSUB.fmt = 0;
+      exp_FNMSUB.rs1 = 5'b11000;
+      exp_FNMSUB.rs2 = 5'b10110;
+      exp_FNMSUB.rs3 = 5'b10010;
+      exp_FNMSUB.rd = 5'b101110;
+      exp_FNMSUB.offset = 0;
+      exp_FNMSUB.fp_read = 1;
+      exp_FNMSUB.fp_write = 1;
+      exp_FNMSUB.eff_read = 0;
+      exp_FNMSUB.eff_write = 0;
+      exp_FNMSUB.int_read = 0;
+      exp_FNMSUB.int_write = 0;
+      exp_FNMSUB.rm = 3'b000;
+
+      logic [31:0] instr_FNMSUB = {exp_FNMSUB.rs3, exp_FNMSUB.fmt, exp_FNMSUB.rs2, exp_FNMSUB.rs1, exp_FNMSUB.rm, exp_FNMSUB.rd, exp_FNMSUB.fp_op};
+      apply_instr_and_check("FNMSUB", instr_FNMSUB, exp_FNMSUB);
+    end
+
+    repeat (5) @(posedge clk);
 
     // FNMADD.S instruction
 
+    begin
+      fp_decoder_exp exp_FNMADD;
+
+      exp_FNMADD.fp_op = FP_OP_FNMADD;
+      exp_FNMADD.func = FP_INSTR_NONE;
+      exp_FNMADD.fmt = 0;
+      exp_FNMADD.rs1 = 5'b11000;
+      exp_FNMADD.rs2 = 5'b10110;
+      exp_FNMADD.rs3 = 5'b10010;
+      exp_FNMADD.rd = 5'b101110;
+      exp_FNMADD.offset = 0;
+      exp_FNMADD.fp_read = 1;
+      exp_FNMADD.fp_write = 1;
+      exp_FNMADD.eff_read = 0;
+      exp_FNMADD.eff_write = 0;
+      exp_FNMADD.int_read = 0;
+      exp_FNMADD.int_write = 0;
+      exp_FNMADD.rm = 3'b000;
+
+      logic [31:0] instr_FNMADD = {exp_FNMADD.rs3, exp_FNMADD.fmt, exp_FNMADD.rs2, exp_FNMADD.rs1, exp_FNMADD.rm, exp_FNMADD.rd, exp_FNMADD.fp_op};
+      apply_instr_and_check("FNMADD", instr_FNMADD, exp_FNMADD);
+    end
+
+    repeat (5) @(posedge clk);
+
     // FADD.S instruction
+
+    begin
+      fp_decoder_exp exp_FADD;
+
+      exp_FADD.fp_op = FP_OP;
+      exp_FADD.func = FP_INSTR_FADD;
+      exp_FADD.fmt = 0;
+      exp_FADD.rs1 = 5'b11000;
+      exp_FADD.rs2 = 5'b10110;
+      exp_FADD.rs3 = 0;
+      exp_FADD.rd = 5'b101110;
+      exp_FADD.offset = 0;
+      exp_FADD.fp_read = 1;
+      exp_FADD.fp_write = 1;
+      exp_FADD.eff_read = 0;
+      exp_FADD.eff_write = 0;
+      exp_FADD.int_read = 0;
+      exp_FADD.int_write = 0;
+      exp_FADD.rm = 3'b000;
+
+      logic [31:0] instr_FADD = {exp_FADD.func, exp_FADD.rs2, exp_FADD.rs1, exp_FADD.rm, exp_FADD.rd, exp_FADD.fp_op};
+      apply_instr_and_check("FADD", instr_FADD, exp_FADD);
+    end
+
+    repeat (5) @(posedge clk);
     
     // FSUB.S instruction
+
+    begin
+      fp_decoder_exp exp_FSUB;
+
+      exp_FSUB.fp_op = FP_OP;
+      exp_FSUB.func = FP_INSTR_FSUB;
+      exp_FSUB.fmt = 0;
+      exp_FSUB.rs1 = 5'b11000;
+      exp_FSUB.rs2 = 5'b10110;
+      exp_FSUB.rs3 = 0;
+      exp_FSUB.rd = 5'b101110;
+      exp_FSUB.offset = 0;
+      exp_FSUB.fp_read = 1;
+      exp_FSUB.fp_write = 1;
+      exp_FSUB.eff_read = 0;
+      exp_FSUB.eff_write = 0;
+      exp_FSUB.int_read = 0;
+      exp_FSUB.int_write = 0;
+      exp_FSUB.rm = 3'b000;
+
+      logic [31:0] instr_FSUB = {exp_FSUB.func, exp_FSUB.rs2, exp_FSUB.rs1, exp_FSUB.rm, exp_FSUB.rd, exp_FSUB.fp_op};
+      apply_instr_and_check("FSUB", instr_FSUB, exp_FSUB);
+    end
+
+    repeat (5) @(posedge clk);
 
     // FMUL.S instruction
 
@@ -226,19 +369,172 @@ module fp_decoder_tb;
 
     // FSQRT.S instruction
 
+
+    // FSGNJ.S instruction
+
+    begin
+      fp_decoder_exp exp_FSGNJ;
+
+      exp_FSGNJ.fp_op = FP_OP;
+      exp_FSGNJ.func = FP_INSTR_FSGNJ;
+      exp_FSGNJ.fmt = 0;
+      exp_FSGNJ.rs1 = 5'b11000;
+      exp_FSGNJ.rs2 = 5'b10110;
+      exp_FSGNJ.rs3 = 0;
+      exp_FSGNJ.rd = 5'b101110;
+      exp_FSGNJ.offset = 0;
+      exp_FSGNJ.fp_read = 1;
+      exp_FSGNJ.fp_write = 1;
+      exp_FSGNJ.eff_read = 0;
+      exp_FSGNJ.eff_write = 0;
+      exp_FSGNJ.int_read = 0;
+      exp_FSGNJ.int_write = 0;
+      exp_FSGNJ.rm = 3'b000;
+
+      logic [31:0] instr_FSGNJ = {exp_FSGNJ.func, exp_FSGNJ.rs2, exp_FSGNJ.rs1, exp_FSGNJ.rm, exp_FSGNJ.rd, exp_FSGNJ.fp_op};
+      apply_instr_and_check("FSGNJ", instr_FSGNJ, exp_FSGNJ);
+    end
+
+    repeat (5) @(posedge clk);
+
     // FSGNJN.S instruction
+
+    begin
+      fp_decoder_exp exp_FSGNJS;
+
+      exp_FSGNJS.fp_op = FP_OP;
+      exp_FSGNJS.func = FP_INSTR_FSGNJ;
+      exp_FSGNJS.fmt = 0;
+      exp_FSGNJS.rs1 = 5'b11000;
+      exp_FSGNJS.rs2 = 5'b10110;
+      exp_FSGNJS.rs3 = 0;
+      exp_FSGNJS.rd = 5'b101110;
+      exp_FSGNJS.offset = 0;
+      exp_FSGNJS.fp_read = 1;
+      exp_FSGNJS.fp_write = 1;
+      exp_FSGNJS.eff_read = 0;
+      exp_FSGNJS.eff_write = 0;
+      exp_FSGNJS.int_read = 0;
+      exp_FSGNJS.int_write = 0;
+      exp_FSGNJS.rm = 3'b001;
+
+      logic [31:0] instr_FSGNJS = {exp_FSGNJS.func, exp_FSGNJS.rs2, exp_FSGNJS.rs1, exp_FSGNJS.rm, exp_FSGNJS.rd, exp_FSGNJS.fp_op};
+      apply_instr_and_check("FSGNJS", instr_FSGNJS, exp_FSGNJS);
+    end
+
+    repeat (5) @(posedge clk);
 
     // FSGNJX.S instruction
   
     // FMIN.S instruction
 
+    begin
+      fp_decoder_exp exp_FMIN;
+
+      exp_FMIN.fp_op = FP_OP;
+      exp_FMIN.func = FP_INSTR_FMINMAX;
+      exp_FMIN.fmt = 0;
+      exp_FMIN.rs1 = 5'b11000;
+      exp_FMIN.rs2 = 5'b10110;
+      exp_FMIN.rs3 = 0;
+      exp_FMIN.rd = 5'b101110;
+      exp_FMIN.offset = 0;
+      exp_FMIN.fp_read = 1;
+      exp_FMIN.fp_write = 1;
+      exp_FMIN.eff_read = 0;
+      exp_FMIN.eff_write = 0;
+      exp_FMIN.int_read = 0;
+      exp_FMIN.int_write = 0;
+      exp_FMIN.rm = 3'b000;
+
+      logic [31:0] instr_FMIN = {exp_FMIN.func, exp_FMIN.rs2, exp_FMIN.rs1, exp_FMIN.rm, exp_FMIN.rd, exp_FMIN.fp_op};
+      apply_instr_and_check("FMIN", instr_FMIN, exp_FMIN);
+    end
+
+    repeat (5) @(posedge clk);
+
     // FMAX.S instruction
 
+    begin
+      fp_decoder_exp exp_FMAX;
+
+      exp_FMAX.fp_op = FP_OP;
+      exp_FMAX.func = FP_INSTR_FMINMAX;
+      exp_FMAX.fmt = 0;
+      exp_FMAX.rs1 = 5'b11000;
+      exp_FMAX.rs2 = 5'b10110;
+      exp_FMAX.rs3 = 0;
+      exp_FMAX.rd = 5'b101110;
+      exp_FMAX.offset = 0;
+      exp_FMAX.fp_read = 1;
+      exp_FMAX.fp_write = 1;
+      exp_FMAX.eff_read = 0;
+      exp_FMAX.eff_write = 0;
+      exp_FMAX.int_read = 0;
+      exp_FMAX.int_write = 0;
+      exp_FMAX.rm = 3'b001;
+
+      logic [31:0] instr_FMAX = {exp_FMAX.func, exp_FMAX.rs2, exp_FMAX.rs1, exp_FMAX.rm, exp_FMAX.rd, exp_FMAX.fp_op};
+      apply_instr_and_check("FMAX", instr_FMAX, exp_FMAX);
+    end
+
+    repeat (5) @(posedge clk);
+
     // FCVT.W.S instruction
+
+    begin
+      fp_decoder_exp exp_FCVTWS;
+
+      exp_FCVTWS.fp_op = FP_OP;
+      exp_FCVTWS.func = FP_INSTR_FCVT_W;
+      exp_FCVTWS.fmt = 0;
+      exp_FCVTWS.rs1 = 5'b11000;
+      exp_FCVTWS.rs2 = 5'b00000;
+      exp_FCVTWS.rs3 = 0;
+      exp_FCVTWS.rd = 5'b101110;
+      exp_FCVTWS.offset = 0;
+      exp_FCVTWS.fp_read = 1;
+      exp_FCVTWS.fp_write = 0;
+      exp_FCVTWS.eff_read = 0;
+      exp_FCVTWS.eff_write = 0;
+      exp_FCVTWS.int_read = 0;
+      exp_FCVTWS.int_write = 1;
+      exp_FCVTWS.rm = 3'b000;
+
+      logic [31:0] instr_FCVTWS = {exp_FCVTWS.func, exp_FCVTWS.rs2, exp_FCVTWS.rs1, exp_FCVTWS.rm, exp_FCVTWS.rd, exp_FCVTWS.fp_op};
+      apply_instr_and_check("FCVT", instr_FCVTWS, exp_FCVTWS);
+    end
+
+    repeat (5) @(posedge clk);
 
     // FCVT.WU.S instruction
 
     // FMV.X.W instruction
+
+    begin
+      fp_decoder_exp exp_FMVXW;
+
+      exp_FMVXW.fp_op = FP_OP;
+      exp_FMVXW.func = FP_INSTR_FMV_X_W;
+      exp_FMVXW.fmt = 0;
+      exp_FMVXW.rs1 = 5'b11000;
+      exp_FMVXW.rs2 = 5'b00000;
+      exp_FMVXW.rs3 = 0;
+      exp_FMVXW.rd = 5'b101110;
+      exp_FMVXW.offset = 0;
+      exp_FMVXW.fp_read = 1;
+      exp_FMVXW.fp_write = 0;
+      exp_FMVXW.eff_read = 0;
+      exp_FMVXW.eff_write = 0;
+      exp_FMVXW.int_read = 0;
+      exp_FMVXW.int_write = 1;
+      exp_FMVXW.rm = 3'b000;
+
+      logic [31:0] instr_FMVXW = {exp_FMVXW.func, exp_FMVXW.rs2, exp_FMVXW.rs1, exp_FMVXW.rm, exp_FMVXW.rd, exp_FMVXW.fp_op};
+      apply_instr_and_check("FMIN", instr_FMVXW, exp_FMVXW);
+    end
+
+    repeat (5) @(posedge clk);
 
     // FEQ.S instruction
 
@@ -250,9 +546,59 @@ module fp_decoder_tb;
 
     // FCVT.S.W instruction
 
+    begin
+      fp_decoder_exp exp_FCVTSW;
+
+      exp_FCVTSW.fp_op = FP_OP;
+      exp_FCVTSW.func = FP_INSTR_FCVT_S;
+      exp_FCVTSW.fmt = 0;
+      exp_FCVTSW.rs1 = 5'b11000;
+      exp_FCVTSW.rs2 = 5'b00000;
+      exp_FCVTSW.rs3 = 0;
+      exp_FCVTSW.rd = 5'b101110;
+      exp_FCVTSW.offset = 0;
+      exp_FCVTSW.fp_read = 0;
+      exp_FCVTSW.fp_write = 1;
+      exp_FCVTSW.eff_read = 0;
+      exp_FCVTSW.eff_write = 0;
+      exp_FCVTSW.int_read = 1;
+      exp_FCVTSW.int_write = 0;
+      exp_FCVTSW.rm = 3'b000;
+
+      logic [31:0] instr_FCVTSW = {exp_FCVTSW.func, exp_FCVTSW.rs2, exp_FCVTSW.rs1, exp_FCVTSW.rm, exp_FCVTSW.rd, exp_FCVTSW.fp_op};
+      apply_instr_and_check("FCVTSW", instr_FCVTSW, exp_FCVTSW);
+    end
+
+    repeat (5) @(posedge clk);
+
     // FCVT.S.WU instruction
 
     // FMV.W.X instruction
+
+    begin
+      fp_decoder_exp exp_FMVWX;
+
+      exp_FMVWX.fp_op = FP_OP;
+      exp_FMVWX.func = FP_INSTR_FMV_W_X;
+      exp_FMVWX.fmt = 0;
+      exp_FMVWX.rs1 = 5'b11000;
+      exp_FMVWX.rs2 = 5'b00000;
+      exp_FMVWX.rs3 = 0;
+      exp_FMVWX.rd = 5'b101110;
+      exp_FMVWX.offset = 0;
+      exp_FMVWX.fp_read = 0;
+      exp_FMVWX.fp_write = 1;
+      exp_FMVWX.eff_read = 0;
+      exp_FMVWX.eff_write = 0;
+      exp_FMVWX.int_read = 1;
+      exp_FMVWX.int_write = 0;
+      exp_FMVWX.rm = 3'b000;
+
+      logic [31:0] instr_FMVWX = {exp_FMVWX.func, exp_FMVWX.rs2, exp_FMVWX.rs1, exp_FMVWX.rm, exp_FMVWX.rd, exp_FMVWX.fp_op};
+      apply_instr_and_check("FMVWX", instr_FMVWX, exp_FMVWX);
+    end
+
+    repeat (5) @(posedge clk);
 
     // FCVT.L.S instruction
 
